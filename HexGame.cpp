@@ -3,7 +3,7 @@
 
 using namespace std;
 
-enum class Player: short{ Blue, Red };
+enum class Player : short { Blue, Red };
 
 ostream& operator<<(ostream& out, const Player& p) {
 	switch (p) {
@@ -27,10 +27,10 @@ ostream& operator<<(ostream& out, const SquareVal& s) {
 class Board {
 public:
 	//initialized an empty board
-	Board(int n) : board(n, vector<SquareVal>(n, SquareVal::Blank)) { 
-		size = n;	
-		totalNodes = size * size; 
-		
+	Board(int n) : board(n, vector<SquareVal>(n, SquareVal::Blank)) {
+		size = n;
+		totalNodes = size * size;
+
 		// initialize an empty weight matrix between all the nodes
 		for (int x = 0; x < totalNodes; x++) {
 			vector<int> e;
@@ -180,9 +180,12 @@ void Board::printBoard()
 		cout << endl;
 		for (int count = -1; count < i; count++)
 			cout << " ";
-		cout << "  \\ / \\ / \\ / \\ / \\ / \\ / \\" << endl;;
+		cout << "  \\";
+		for (int i = 1; i < size; i++) {
+			cout << " / \\";
+		}
+		cout << endl;
 	}
-
 }
 
 //Print out weight matrix for checking
@@ -201,6 +204,7 @@ public:
 	HexGame(int n) : board(n), player(Player::Blue), isWon(false) { size = n; }
 	bool moveIsValid(int i, int j);
 	void move(int i, int j);
+	void printBoard();
 	Player getPlayer();
 	bool hasWon();
 
@@ -246,6 +250,12 @@ void HexGame::move(int i, int j)
 		player = player == Player::Blue ? Player::Red : Player::Blue;
 }
 
+void HexGame::printBoard()
+{
+	board.printBoard();
+	cout << endl;
+}
+
 //getting the current player
 Player HexGame::getPlayer()
 {
@@ -289,9 +299,14 @@ int main() {
 	HexGame* g;
 	//changing the board size, the board is default at 7
 	int n = 7;
+	cout << "Please choose the board size" << endl;
+	cin >> n;
 	g = new HexGame(n);
+
 	cout << "Welcome to Hex Game" << endl;
 	cout << endl;
+	g->printBoard();
+
 	cout << "Blue goes first!" << endl;
 	cout << endl;
 
