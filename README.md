@@ -1,4 +1,4 @@
-author: Dang Nguyen
+Author: Dang Nguyen
 
 This is a C++ code for a Hex Game.
 
