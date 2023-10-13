@@ -24,21 +24,13 @@ ostream& operator<<(ostream& out, const SquareVal& s) {
 	return out;
 }
 
+
 class Board {
 public:
 	//initialized an empty board
 	Board(int n) : board(n, vector<SquareVal>(n, SquareVal::Blank)) {
 		size = n;
 		totalNodes = size * size;
-
-		// initialize an empty weight matrix between all the nodes
-		for (int x = 0; x < totalNodes; x++) {
-			vector<int> e;
-			for (int y = 0; y < totalNodes; y++) {
-				e.push_back(0);
-			}
-			weight.push_back(e);
-		}
 	}
 	~Board();
 	SquareVal getSquare(int i, int j);
@@ -46,17 +38,15 @@ public:
 	int getNode(int i, int j);
 	bool isWithinBoard(int i, int j);
 	bool adjacent(int i, int j, int x, int y);
-	void generateWeight(Player p);
-	void computePaths();
-	bool isReachable(int x, int y);
+	bool winnerCheck(Player p);
+	bool DFS(vector<vector<int>> marker, int i, int j, Player p);
+	bool isEndNode(int i, int j, Player p);
 	void printBoard();
-	void printWeightMatrix();
 
 private:
 	int size;
 	int totalNodes;
 	vector<vector<SquareVal>> board;
-	vector<vector<int>> weight;
 };
 
 Board::~Board()
@@ -97,12 +87,46 @@ bool Board::adjacent(int i, int j, int x, int y)
 		|| (i == x && j == y + 1)
 		|| (i == x - 1 && j == y)
 		|| (i == x + 1 && j == y)
-		|| (i == x - 1 && j == y - 1)
-		|| (i == x + 1 && j == y + 1));
+		|| (i == x - 1 && j == y + 1)
+		|| (i == x + 1 && j == y - 1));
 }
 
-//add a weight to the edge between Node[i][j] and the rest of the board if it exists
-void Board::generateWeight(Player p)
+//checking if there is a winner
+bool Board::winnerCheck(Player p)
+{
+	int r, c;
+	vector<vector<int>> marker;
+	//initialize an empty marker
+	for (int x = 0; x < size; x++) {
+		vector<int> e;
+		for (int y = 0; y < size; y++) {
+			e.push_back(0);
+		}
+		marker.push_back(e);
+	}
+
+	//runninng Depth First Search based on current player
+	for (int i = 0; i < size; i++) {
+		if (p == Player::Blue) {
+			c = i;
+			r = 0;
+		}
+		else {
+			c = 0;
+			r = i;
+		}
+
+		if (marker[0][i] == 0) {
+			bool result = DFS(marker, r, c, p);
+			if (result)
+				return true;
+		}
+	}
+	return false;
+}
+
+//Depth First Search
+bool Board::DFS(vector<vector<int>> marker, int i, int j, Player p)
 {
 	//setting current value based on the current player
 	auto currentVal = SquareVal::Blue;
@@ -110,42 +134,56 @@ void Board::generateWeight(Player p)
 		currentVal = SquareVal::Red;
 	}
 
-	//going through the board and testing each square one by one, if they are adjacent  
-	//and have the same SquareVal then there is an edge exists between them.
-	for (int i = 0; i < size; i++) {
-		for (int j = 0; j < size; j++) {
-			for (int x = 0; x < size; x++) {
-				for (int y = 0; y < size; y++) {
-					if (adjacent(i, j, x, y) == true && getNode(i, j) != getNode(x, y) && board[i][j] == board[x][y]) {
-						auto currentWeight = 0;
-						if (board[i][j] == currentVal) {
-							currentWeight = 1;
-						}
-						weight[getNode(i, j)][getNode(x, y)] = weight[getNode(x, y)][getNode(i, j)] = currentWeight;
-					}
-				}
-			}
-		}
-	}
-}
-
-void Board::computePaths()
-{
-	//using Floyd Warshall algorithm is check if a path exists
-	for (int k = 0; k < totalNodes; k++) {
-		for (int i = 0; i < totalNodes; i++)
-			for (int j = 0; j < totalNodes; j++)
-				weight[i][j] = weight[i][j] | (weight[i][k] && weight[k][j]);
-	}
-}
-
-//checking if node x can reach node y
-bool Board::isReachable(int x, int y)
-{
-	if (weight[x][y] == 1)
-		return true;
-	else
+	if (i < 0 || i >= size || j < 0 || j >= size) {
 		return false;
+	}
+
+	if (marker[i][j] == 1) {
+		return false;
+	}
+
+	if (board[i][j] != currentVal) {
+		return false;
+	}
+
+	//if it is the endNode then stop
+	marker[i][j] = 1;
+	if (isEndNode(i, j, p)) {
+		return true;
+	}
+	//recursive code to continue checking the adjacent node
+	if (this->DFS(marker, i - 1, j, p)) {
+		return true;
+	}
+	if (this->DFS(marker, i + 1, j, p)) {
+		return true;
+	}
+	if (this->DFS(marker, i, j - 1, p)) {
+		return true;
+	}
+	if (this->DFS(marker, i, j + 1, p)) {
+		return true;
+	}
+	if (this->DFS(marker, i - 1, j + 1, p)) {
+		return true;
+	}
+	if (this->DFS(marker, i + 1, j - 1, p)) {
+		return true;
+	}
+
+	return false;
+}
+
+//checking if it is the end node based on the current player
+bool Board::isEndNode(int i, int j, Player p)
+{
+	if (p == Player::Blue && i >= size - 1) {
+		return true;
+	}
+	if (p == Player::Red && j >= size - 1) {
+		return true;
+	}
+	return false;
 }
 
 //print the board
@@ -188,15 +226,6 @@ void Board::printBoard()
 	}
 }
 
-//Print out weight matrix for checking
-void Board::printWeightMatrix()
-{
-	for (int i = 0; i < totalNodes; i++) {
-		for (int j = 0; j < totalNodes; j++)
-			cout << weight[i][j];
-		cout << endl;
-	}
-}
 
 class HexGame {
 public:
@@ -206,7 +235,7 @@ public:
 	void move(int i, int j);
 	void printBoard();
 	Player getPlayer();
-	bool hasWon();
+	bool gameEnd();
 
 private:
 	Player player;
@@ -228,20 +257,14 @@ void HexGame::move(int i, int j)
 		SquareVal val = player == Player::Blue ? SquareVal::Blue : SquareVal::Red;
 		board.setSquare(i, j, val);
 	}
-	board.generateWeight(player);
-	board.computePaths();
 
 	//print game board 
 	cout << endl;
 	board.printBoard();
 	cout << endl;
 
-	//printing the weight matrix for testing
-	board.printWeightMatrix();
-	cout << endl;
-
 	//print out message when the current player win
-	if (hasWon() == true) {
+	if (gameEnd() == true) {
 		cout << "Congratulations! Player " << player << " has won";
 		cout << endl;
 	}
@@ -262,37 +285,13 @@ Player HexGame::getPlayer()
 	return player;
 }
 
-//checking if the player has won the game or not
-bool HexGame::hasWon()
+//checking if the game has ended or not
+bool HexGame::gameEnd()
 {
-	//testing Blue's win condition: a path between 1st row and last row
-	if (player == Player::Blue) {
-		int i = 0;
-		for (int j = 0; j < size; j++) {
-			int x = size - 1;
-			for (int y = 0; y < size; y++) {
-				isWon = board.isReachable(board.getNode(i, j), board.getNode(x, y));
-				if (isWon == true) {
-					return true;
-				}
-				return false;
-			}
-		}
+	if (board.winnerCheck(player)) {
+		return true;
 	}
-	//testing Red's win condition: a path between 1st column and last column
-	else {
-		int j = 0;
-		for (int i = 0; i < size; i++) {
-			int y = size - 1;
-			for (int x = 0; x < size; x++) {
-				isWon = board.isReachable(board.getNode(i, j), board.getNode(x, y));
-				if (isWon == true) {
-					return true;
-				}
-				return false;
-			}
-		}
-	}
+	return false;
 }
 
 int main() {
@@ -311,7 +310,7 @@ int main() {
 	cout << endl;
 
 	//game will continue if the winning conditions has not been met
-	while (!g->hasWon()) {
+	while (!g->gameEnd()) {
 		cout << "Player " << g->getPlayer() << "'s turn" << endl;
 		cout << endl;
 		cout << "Please choose row and column" << endl;
@@ -327,5 +326,7 @@ int main() {
 			cout << endl;
 		}
 	}
+	delete g;
+
 	return 0;
 }
