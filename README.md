@@ -10,4 +10,4 @@ Win Condition:
 -Blue: form a connected path from top row to bottom row
 -Red: form a connected path from left column to right column
 
-*Swap Rule & AI are not yet implemented
+Added a separated file for AI implementation, not yet optimized
